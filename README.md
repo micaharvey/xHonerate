@@ -2,29 +2,29 @@
 Terminal adventure game
 
 ## Linux Quickstart Setup
-### Install fluidsynth
+Install fluidsynth
 ```
 sudo apt-get install fluidsynth
 sudo apt-get install libfluidsynth-dev
 ```
 
 ## Mac Quickstart Setup
-### Install Homebrew 
+Install Homebrew 
 ```
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 ```
-### Install fluidsynth via Homebrew
+Install fluidsynth via Homebrew
 ```
 brew install fluidsynth pkg-config
 ```
 
 ## Running the program
-### Compile the code
+Compile the code
 ```
 source compile.sh
 ```
 
-### Run xHonerate
+Run xHonerate
 ```
 ./xHonerate
 ```
