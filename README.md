@@ -11,7 +11,7 @@ sudo apt-get install libfluidsynth-dev
 ## Mac Quickstart Setup
 ### Install Homebrew 
 ```
-brew install fluidsynth pkg-config
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 ```
 ### Install fluidsynth via Homebrew
 ```
