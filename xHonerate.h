@@ -23,6 +23,7 @@ void playNote(fluid_synth_t* synth, int channel, int key, int velocity);
 // game
 int is_move_okay(int y, int x);
 void draw_map(void);
+void draw_new_map(void);
 
 /*---------------------------\
 | GENERAL MIDI SPECIFICATION |

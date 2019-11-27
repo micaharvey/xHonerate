@@ -84,6 +84,9 @@ int main(int argc, char **argv) {
             if ((y > 0) && is_move_okay(y - 1, x)) {
               mvaddch(y, x, EMPTY);
               y = y - 1;
+            } else if(y == 0) {
+              draw_map();
+              y = LINES - 1;
             }
             break;
         case KEY_DOWN:
@@ -93,6 +96,9 @@ int main(int argc, char **argv) {
             if ((y < LINES - 1) && is_move_okay(y + 1, x)) {
               mvaddch(y, x, EMPTY);
               y = y + 1;
+            } else if(y == LINES - 1) {
+              draw_new_map();
+              y = 0;
             }
             break;
         case KEY_LEFT:
@@ -176,6 +182,35 @@ void draw_map(void)
     /* lake */
 
     for (y = 1; y < LINES / 2; y++) {
+      mvhline(y, 1, WATER, COLS / 3);
+    }
+}
+
+
+
+void draw_new_map(void)
+{
+    int y, x;
+
+    /* draw the quest map */
+
+    /* background */
+
+    for (y = 9; y < LINES; y++) {
+      mvhline(y, 0, GRASS, COLS);
+    }
+
+    /* mountains, and mountain path */
+
+    for (x = COLS / 4; x < COLS * 1 / 8; x++) {
+      mvvline(0, x, MOUNTAIN, LINES);
+    }
+
+    mvhline(LINES / 4, 0, GRASS, COLS);
+
+    /* lake */
+
+    for (y = 6; y < LINES / 5; y++) {
       mvhline(y, 1, WATER, COLS / 3);
     }
 }
