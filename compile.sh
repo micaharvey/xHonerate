@@ -1,0 +1,1 @@
+g++ -w -o xHonerate xHonerate.c `pkg-config fluidsynth --libs` -lcurses
