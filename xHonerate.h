@@ -30,8 +30,8 @@ void playNote(fluid_synth_t* synth, int channel, int key, int velocity);
 
 // game
 int is_move_okay(int y, int x, bool gate_open);
-void draw_region(int region, bool gate_open, bool relic_placed, bool has_key, bool moon_ruins_cleared, bool whisper_ruins_cleared, bool in_forest);
-void draw_hud(int region, bool gate_open, bool has_relic, bool relic_placed, bool has_key, bool moon_ruins_cleared, bool whisper_ruins_cleared);
+void draw_region(int region, bool gate_open, bool relic_placed, bool has_key, bool moon_ruins_cleared, bool whisper_ruins_cleared, bool in_forest, int map_rows, int map_cols);
+void draw_hud(int region, bool gate_open, bool has_relic, bool relic_placed, bool has_key, bool moon_ruins_cleared, bool whisper_ruins_cleared, int map_rows, int map_cols);
 
 /*---------------------------\
 | GENERAL MIDI SPECIFICATION |

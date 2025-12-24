@@ -27,6 +27,22 @@ static int shrine_x_global = 0;
 static int corridor_x_global = 0;
 static int block1_y_global = 0;
 static int block2_y_global = 0;
+static const int MAX_MAP_ROWS = 28;
+static const int MAX_MAP_COLS = 100;
+
+static void get_map_size(int* map_rows, int* map_cols) {
+  int term_rows = 0;
+  int term_cols = 0;
+  getmaxyx(stdscr, term_rows, term_cols);
+  int usable_rows = term_rows - 1;
+  int usable_cols = term_cols;
+  if (usable_rows < 5) usable_rows = 5;
+  if (usable_cols < 10) usable_cols = 10;
+  if (usable_rows > MAX_MAP_ROWS) usable_rows = MAX_MAP_ROWS;
+  if (usable_cols > MAX_MAP_COLS) usable_cols = MAX_MAP_COLS;
+  *map_rows = usable_rows;
+  *map_cols = usable_cols;
+}
 
 static void fluidsynth_log_filter(int level, const char* message, void* data) {
   if (level == FLUID_WARN) {
@@ -154,6 +170,9 @@ int main(int argc, char **argv) {
 
     // game variables
     int y, x;
+    int map_rows = 0;
+    int map_cols = 0;
+    int map_bottom = 0;
     int region = 0;
     const int region_count = 3;
     bool gate_open = false;
@@ -190,11 +209,17 @@ int main(int argc, char **argv) {
     fluid_settings_setint(_settings, "audio.periods", 8);
     fluid_settings_setint(_settings, "audio.period-size", 256);
     _synth = new_fluid_synth(_settings);
-    // Try multiple Windows-friendly audio drivers in order.
+    // Try available audio drivers per platform.
     {
+#ifdef _WIN32
       const char* _drivers[] = {"waveout", "dsound", "wasapi", "portaudio", "file"};
+      const int _driver_count = 5;
+#else
+      const char* _drivers[] = {"coreaudio", "portaudio", "file"};
+      const int _driver_count = 3;
+#endif
       _adriver = NULL;
-      for (int i = 0; i < 5 && !_adriver; i++) {
+      for (int i = 0; i < _driver_count && !_adriver; i++) {
         fluid_settings_setstr(_settings, "audio.driver", _drivers[i]);
         _adriver = new_fluid_audio_driver(_settings, _synth);
       }
@@ -206,6 +231,7 @@ int main(int argc, char **argv) {
 
     // init ncurses for keyboard input
     initscr();
+    get_map_size(&map_rows, &map_cols);
 
     // grant ability to read arrow keays
     keypad(stdscr, TRUE);
@@ -219,22 +245,21 @@ int main(int argc, char **argv) {
     clear();
 
     /* start player at lower-left */
-    int map_bottom = LINES - 2;
+    map_bottom = map_rows - 1;
     y = map_bottom;
     x = 0;
     in_forest = false;
 
     srand((unsigned int)time(NULL));
     {
-      int map_rows = LINES - 1;
       int relic_y = map_rows / 2;
-      int relic_x = COLS / 2;
-      init_ruins(map_rows, COLS, relic_y, relic_x);
+      int relic_x = map_cols / 2;
+      init_ruins(map_rows, map_cols, relic_y, relic_x);
     }
 
     /* initialize the quest map */
-    draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
-    draw_hud(region, gate_open, has_relic, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared);
+    draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
+    draw_hud(region, gate_open, has_relic, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, map_rows, map_cols);
     refresh();
 
     /*-------------------\
@@ -245,12 +270,11 @@ int main(int argc, char **argv) {
       mvaddch(y, x, PLAYER);
       move(y, x);
 
-      int map_rows = LINES - 1;
       int forest_top = 3;
       int forest_bottom = map_rows - 5;
-      int forest_left = COLS / 2;
-      int forest_right = COLS - 4;
-      draw_hud(region, gate_open, has_relic, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared);
+      int forest_left = map_cols / 2;
+      int forest_right = map_cols - 4;
+      draw_hud(region, gate_open, has_relic, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, map_rows, map_cols);
       refresh();
 
 #ifdef _WIN32
@@ -325,8 +349,8 @@ int main(int argc, char **argv) {
               region = (region + 1) % region_count;
               clear();
               in_forest = false;
-              draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
-              draw_hud(region, gate_open, has_relic, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared);
+              draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
+              draw_hud(region, gate_open, has_relic, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, map_rows, map_cols);
               y = map_bottom;
               _moved = true;
             }
@@ -343,8 +367,8 @@ int main(int argc, char **argv) {
               region = (region + region_count - 1) % region_count;
               clear();
               in_forest = false;
-              draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
-              draw_hud(region, gate_open, has_relic, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared);
+              draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
+              draw_hud(region, gate_open, has_relic, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, map_rows, map_cols);
               y = 0;
               _moved = true;
             }
@@ -363,7 +387,7 @@ int main(int argc, char **argv) {
         case 'd':
         case 'D':
             _note = 51;
-            if ((x < COLS - 1) && is_move_okay(y, x + 1, gate_open)) {
+            if ((x < map_cols - 1) && is_move_okay(y, x + 1, gate_open)) {
               mvaddch(y, x, EMPTY);
               x = x + 1;
               _moved = true;
@@ -374,7 +398,7 @@ int main(int argc, char **argv) {
       int key_y = forest_top + 3;
       int key_x = forest_left + 4;
       int relic_y = map_rows / 2;
-      int relic_x = COLS / 2;
+      int relic_x = map_cols / 2;
       int gate_top = relic_y - 1;
       int gate_bottom = relic_y + 1;
       int gate_left = relic_x - 2;
@@ -387,30 +411,30 @@ int main(int argc, char **argv) {
                                 x >= forest_left && x <= forest_right);
       if (current_in_forest != in_forest) {
         in_forest = current_in_forest;
-        draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
+        draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
       }
 
       if (_interact) {
         if (region == 1 && has_key) {
           if (clear_adjacent_ruin(moon_ruins, moon_ruin_count, y, x)) {
-            draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
+            draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
           }
         }
         if (region == 2 && has_key) {
           if (clear_adjacent_ruin(whisper_ruins, whisper_ruin_count, y, x)) {
-            draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
+            draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
           }
         }
         if (region == 1 && !gate_open && has_key) {
           if (y >= gate_top && y <= gate_bottom &&
               (x == gate_left - 1 || x == gate_right + 1)) {
             gate_open = true;
-            draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
+            draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
           }
           if (x >= gate_left && x <= gate_right &&
               (y == gate_top - 1 || y == gate_bottom + 1)) {
             gate_open = true;
-            draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
+            draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
           }
         }
         if (region == 2 && has_relic && !relic_placed) {
@@ -420,19 +444,19 @@ int main(int argc, char **argv) {
             has_relic = false;
             relic_placed = true;
             win_flash = 30;
-            draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
+            draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
           }
         }
       }
 
       if (region == 0 && in_forest && !has_key && y == key_y && x == key_x) {
         has_key = true;
-        draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
+        draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
       }
 
       if (region == 1 && gate_open && !has_relic && y == relic_y && x == relic_x) {
         has_relic = true;
-        draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest);
+        draw_region(region, gate_open, relic_placed, has_key, moon_ruins_cleared, whisper_ruins_cleared, in_forest, map_rows, map_cols);
       }
 
       if (_moved) {
@@ -506,18 +530,17 @@ int is_move_okay(int y, int x, bool gate_open)
             (testch == RELIC) || (testch == KEYITEM));
 }
 
-void draw_region(int region, bool gate_open, bool relic_placed, bool has_key, bool moon_ruins_cleared, bool whisper_ruins_cleared, bool in_forest)
+void draw_region(int region, bool gate_open, bool relic_placed, bool has_key, bool moon_ruins_cleared, bool whisper_ruins_cleared, bool in_forest, int map_rows, int map_cols)
 {
     int y, x;
-    int map_rows = LINES - 1;
     int forest_top = 3;
     int forest_bottom = map_rows - 5;
-    int forest_left = COLS / 2;
-    int forest_right = COLS - 4;
+    int forest_left = map_cols / 2;
+    int forest_right = map_cols - 4;
     int key_y = forest_top + 3;
     int key_x = forest_left + 4;
     int relic_y = map_rows / 2;
-    int relic_x = COLS / 2;
+    int relic_x = map_cols / 2;
     int shrine_y = shrine_y_global;
     int shrine_x = shrine_x_global;
 
@@ -526,10 +549,10 @@ void draw_region(int region, bool gate_open, bool relic_placed, bool has_key, bo
       int path_x = forest_left + 2;
       int path_top = forest_bottom - 2;
       for (y = 0; y < map_rows; y++) {
-        mvhline(y, 0, base, COLS);
+        mvhline(y, 0, base, map_cols);
       }
       for (y = 2; y < map_rows - 3; y++) {
-        mvhline(y, 2, WATER, COLS / 4);
+        mvhline(y, 2, WATER, map_cols / 4);
       }
       for (y = forest_top; y <= forest_bottom; y++) {
         mvhline(y, forest_left, in_forest ? GRASS : TREE, forest_right - forest_left + 1);
@@ -545,14 +568,14 @@ void draw_region(int region, bool gate_open, bool relic_placed, bool has_key, bo
       }
     } else if (region == 1) {
       for (y = 0; y < map_rows; y++) {
-        mvhline(y, 0, EMPTY, COLS);
+        mvhline(y, 0, EMPTY, map_cols);
       }
       for (int i = 0; i < moon_ruin_count; i++) {
         if (moon_ruins[i].active) mvaddch(moon_ruins[i].y, moon_ruins[i].x, RUIN);
       }
       for (y = 2; y < map_rows - 2; y += 3) {
         mvaddch(y, 2, TREE);
-        mvaddch(y, COLS - 3, TREE);
+        mvaddch(y, map_cols - 3, TREE);
       }
       if (!gate_open) {
         mvhline(relic_y - 1, relic_x - 2, GATE, 5);
@@ -564,19 +587,19 @@ void draw_region(int region, bool gate_open, bool relic_placed, bool has_key, bo
     } else if (region == 2) {
       if (relic_placed) {
         for (y = 0; y < map_rows; y++) {
-          mvhline(y, 0, GRASS, COLS);
+          mvhline(y, 0, GRASS, map_cols);
         }
       } else {
         for (y = 0; y < map_rows; y++) {
-          mvhline(y, 0, EMPTY, COLS);
+          mvhline(y, 0, EMPTY, map_cols);
         }
         for (y = 1; y < map_rows - 1; y += 2) {
-          for (x = 2; x < COLS - 2; x += 3) {
+          for (x = 2; x < map_cols - 2; x += 3) {
             if ((x + y) % 2 == 0) mvaddch(y, x, TREE);
           }
         }
         for (y = 2; y < map_rows - 2; y += 3) {
-          for (x = 3; x < COLS - 3; x += 5) {
+          for (x = 3; x < map_cols - 3; x += 5) {
             if ((x + y) % 4 == 1) mvaddch(y, x, TREE);
           }
         }
@@ -586,7 +609,7 @@ void draw_region(int region, bool gate_open, bool relic_placed, bool has_key, bo
         int corridor_x = corridor_x_global;
         for (y = 2; y < map_rows - 2; y++) {
           mvaddch(y, corridor_x, EMPTY);
-          if (corridor_x + 1 < COLS) mvaddch(y, corridor_x + 1, EMPTY);
+          if (corridor_x + 1 < map_cols) mvaddch(y, corridor_x + 1, EMPTY);
         }
         {
           int sx = corridor_x_global < shrine_x_global ? corridor_x_global : shrine_x_global;
@@ -607,33 +630,43 @@ void draw_region(int region, bool gate_open, bool relic_placed, bool has_key, bo
     }
 }
 
-void draw_hud(int region, bool gate_open, bool has_relic, bool relic_placed, bool has_key, bool moon_ruins_cleared, bool whisper_ruins_cleared)
+void draw_hud(int region, bool gate_open, bool has_relic, bool relic_placed, bool has_key, bool moon_ruins_cleared, bool whisper_ruins_cleared, int map_rows, int map_cols)
 {
-    int hud_row = LINES - 1;
-    mvhline(hud_row, 0, GRASS, COLS);
+    int hud_row = map_rows;
+    int hud_width = map_cols > 1 ? map_cols - 1 : map_cols;
+    const char* message = "";
+
+    if (hud_width > 0) {
+      mvhline(hud_row, 0, GRASS, hud_width);
+    }
+
     if (relic_placed) {
-      mvprintw(hud_row, 1, "The woods bloom with light. Your quest is complete. Press q to quit.");
+      message = "The woods bloom with light. Your quest is complete. Press q to quit.";
     } else if (region == 0) {
       if (has_key) {
-        mvprintw(hud_row, 1, "Meadow Road - key found. Head north to the moonlit ruins.");
+        message = "Meadow Road - key found. Head north to the moonlit ruins.";
       } else {
-        mvprintw(hud_row, 1, "Meadow Road - enter the forest to find the key.");
+        message = "Meadow Road - enter the forest to find the key.";
       }
     } else if (region == 1) {
       if (!has_key) {
-        mvprintw(hud_row, 1, "Moonlit Ruins - you need the key from the meadow.");
+        message = "Moonlit Ruins - you need the key from the meadow.";
       } else if (!gate_open) {
-        mvprintw(hud_row, 1, "Moonlit Ruins - use the key at the ruins/gate (press E).");
+        message = "Moonlit Ruins - use the key at the ruins/gate (press E).";
       } else if (!has_relic) {
-        mvprintw(hud_row, 1, "Moonlit Ruins - claim the relic at the heart.");
+        message = "Moonlit Ruins - claim the relic at the heart.";
       } else {
-        mvprintw(hud_row, 1, "Moonlit Ruins - go north to the whispering woods.");
+        message = "Moonlit Ruins - go north to the whispering woods.";
       }
     } else if (region == 2) {
       if (!has_relic) {
-        mvprintw(hud_row, 1, "Whispering Woods - bring the relic from the south.");
+        message = "Whispering Woods - bring the relic from the south.";
       } else {
-        mvprintw(hud_row, 1, "Whispering Woods - place the relic at the shrine (press E).");
+        message = "Whispering Woods - place the relic at the shrine (press E).";
       }
+    }
+
+    if (hud_width > 2) {
+      mvaddnstr(hud_row, 1, message, hud_width - 2);
     }
 }
