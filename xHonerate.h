@@ -8,8 +8,16 @@ const unsigned int DRUM_CHANNEL = 9;
 #define GRASS     ' '
 #define EMPTY     '.'
 #define WATER     '~'
-#define MOUNTAIN  '^'
+#define MOUNTAIN  'M'
 #define PLAYER    '*'
+#define TREE      '^'
+#define RUIN      '#'
+#define SHRINE    'O'
+#define SHRINE_FILLED '0'
+#define CAMP      'C'
+#define GATE      'G'
+#define RELIC     'R'
+#define KEYITEM   'K'
 
 /* Structs */
 struct padSetting {
@@ -21,9 +29,9 @@ struct padSetting {
 void playNote(fluid_synth_t* synth, int channel, int key, int velocity);
 
 // game
-int is_move_okay(int y, int x);
-void draw_map(void);
-void draw_new_map(void);
+int is_move_okay(int y, int x, bool gate_open);
+void draw_region(int region, bool gate_open, bool relic_placed, bool has_key, bool moon_ruins_cleared, bool whisper_ruins_cleared, bool in_forest);
+void draw_hud(int region, bool gate_open, bool has_relic, bool relic_placed, bool has_key, bool moon_ruins_cleared, bool whisper_ruins_cleared);
 
 /*---------------------------\
 | GENERAL MIDI SPECIFICATION |
