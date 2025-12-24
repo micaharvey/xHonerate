@@ -1,0 +1,1 @@
+g++ -w -o xHonerate.exe xHonerate.c `pkg-config --libs --cflags ncursesw fluidsynth` -lncursesw
